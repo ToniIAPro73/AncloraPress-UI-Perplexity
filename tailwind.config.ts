@@ -1,0 +1,160 @@
+import type { Config } from "tailwindcss"
+import defaultConfig from "shadcn/ui/tailwind.config"
+
+const config: Config = {
+  ...defaultConfig,
+  content: [
+    ...defaultConfig.content,
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    ...defaultConfig.theme,
+    extend: {
+      ...defaultConfig.theme.extend,
+      colors: {
+        ...defaultConfig.theme.extend.colors,
+        primary: {
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#3b82f6",
+          600: "#006EE6", // Main Anclora blue
+          700: "#0050A7", // Dark variant
+          800: "#1e40af",
+          900: "#1e3a8a",
+          DEFAULT: "#006EE6",
+          dark: "#0050A7",
+        },
+        secondary: {
+          50: "#ecfeff",
+          100: "#cffafe",
+          200: "#a5f3fc",
+          300: "#67e8f9",
+          400: "#22d3ee",
+          500: "#00B8D9", // Main Anclora cyan
+          600: "#00829B", // Dark variant
+          700: "#15803d",
+          800: "#155e75",
+          900: "#14532d",
+          DEFAULT: "#00B8D9",
+          dark: "#00829B",
+        },
+        success: {
+          50: "#f0fdf4",
+          100: "#dcfce7",
+          200: "#bbf7d0",
+          300: "#86efac",
+          400: "#4ade80",
+          500: "#22c55e",
+          600: "#28A745",
+          700: "#15803d",
+          800: "#166534",
+          900: "#14532d",
+          DEFAULT: "#28A745",
+        },
+        warning: {
+          50: "#fffbeb",
+          100: "#fef3c7",
+          200: "#fde68a",
+          300: "#fcd34d",
+          400: "#fbbf24",
+          500: "#f59e0b",
+          600: "#FFC107",
+          700: "#b45309",
+          800: "#92400e",
+          900: "#78350f",
+          DEFAULT: "#FFC107",
+        },
+        danger: {
+          50: "#fef2f2",
+          100: "#fee2e2",
+          200: "#fecaca",
+          300: "#fca5a5",
+          400: "#f87171",
+          500: "#ef4444",
+          600: "#DC3545",
+          700: "#b91c1c",
+          800: "#991b1b",
+          900: "#7f1d1d",
+          DEFAULT: "#DC3545",
+        },
+        gray: {
+          50: "#F9FAFB",
+          100: "#F5F7FA",
+          200: "#E4E7EB",
+          300: "#D1D5DB",
+          400: "#8492A6",
+          500: "#6B7280",
+          600: "#4B5563",
+          700: "#3E4C59",
+          800: "#1F2A37",
+          900: "#1F2933",
+        },
+        destructive: {
+          DEFAULT: "#ef4444",
+          foreground: "#ffffff",
+        },
+        muted: {
+          DEFAULT: "#e5e7eb",
+          foreground: "#6b7280",
+        },
+        accent: {
+          DEFAULT: "#f97316",
+          foreground: "#ffffff",
+        },
+        popover: {
+          DEFAULT: "#ffffff",
+          foreground: "#1f2933",
+        },
+        card: {
+          DEFAULT: "#ffffff",
+          foreground: "#1f2933",
+        },
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+      },
+      fontSize: {
+        h1: ["2rem", { lineHeight: "1.2", fontWeight: "700" }],
+        h2: ["1.75rem", { lineHeight: "1.2", fontWeight: "700" }],
+        h3: ["1.5rem", { lineHeight: "1.3", fontWeight: "600" }],
+        h4: ["1.25rem", { lineHeight: "1.3", fontWeight: "600" }],
+        subtitle: ["1.125rem", { lineHeight: "1.4", fontWeight: "500" }],
+        body: ["1rem", { lineHeight: "1.5", fontWeight: "400" }],
+        small: ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
+        micro: ["0.75rem", { lineHeight: "1.5", fontWeight: "400" }],
+      },
+      spacing: {
+        "1": "4px",
+        "2": "8px",
+        "3": "12px",
+        "4": "16px",
+        "5": "24px",
+        "6": "32px",
+        "7": "48px",
+        "8": "64px",
+      },
+      borderRadius: {
+        ...defaultConfig.theme.extend.borderRadius,
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        DEFAULT: "6px",
+      },
+      boxShadow: {
+        sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+        DEFAULT: "0 2px 8px rgba(0, 0, 0, 0.08)",
+        md: "0 4px 16px rgba(0, 0, 0, 0.1)",
+        lg: "0 10px 25px rgba(0, 0, 0, 0.15)",
+      },
+    },
+  },
+  plugins: [...defaultConfig.plugins, require("tailwindcss-animate")],
+}
+
+export default config
