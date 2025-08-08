@@ -2,14 +2,16 @@
 
 import { useState } from "react"
 import { BookOpen, Upload, Download, Eye, Palette, Users, Sparkles, Monitor } from "lucide-react"
-import TextEditor from "@/components/text-editor"
-import TemplateGallery from "@/components/template-gallery"
-import CoverEditor from "@/components/cover-editor"
-import PreviewModal from "@/components/preview-modal"
-import ExportModal from "@/components/export-modal"
-import AICopilot from "@/components/ai-copilot"
-import LivePreview from "@/components/live-preview"
-import CollaborationPanel from "@/components/collaboration-panel"
+import dynamic from "next/dynamic"
+
+const TextEditor = dynamic(() => import("@/components/text-editor"), { ssr: false })
+const TemplateGallery = dynamic(() => import("@/components/template-gallery"), { ssr: false })
+const CoverEditor = dynamic(() => import("@/components/cover-editor"), { ssr: false })
+const PreviewModal = dynamic(() => import("@/components/preview-modal"), { ssr: false })
+const ExportModal = dynamic(() => import("@/components/export-modal"), { ssr: false })
+const AICopilot = dynamic(() => import("@/components/ai-copilot"), { ssr: false })
+const LivePreview = dynamic(() => import("@/components/live-preview"), { ssr: false })
+const CollaborationPanel = dynamic(() => import("@/components/collaboration-panel"), { ssr: false })
 
 export default function Home() {
   const [activeStep, setActiveStep] = useState(1)

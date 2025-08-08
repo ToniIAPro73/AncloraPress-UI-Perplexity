@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { X, Download, FileText, Book, Loader2, CheckCircle, AlertCircle } from "lucide-react"
-import { PDFGenerator } from "@/lib/pdf-generator"
-import { EPUBGenerator } from "@/lib/epub-generator"
 
 interface ExportModalProps {
   bookData: {
@@ -75,8 +73,9 @@ export default function ExportModal({ bookData, onClose }: ExportModalProps) {
       await new Promise((resolve) => setTimeout(resolve, 500))
     }
 
-    // Generate actual PDF
-    const pdfGenerator = new PDFGenerator(bookData)
+    // Lazy-load only when needed
+    const { PDFGenerator } = await import("@/lib/pdf-generator")
+    const pdfGenerator = new PDFGenerator({ ...bookData, coverImage: bookData.coverImage ?? undefined })
     const pdfBlob = await pdfGenerator.generatePDF()
 
     // Download PDF
@@ -108,8 +107,9 @@ export default function ExportModal({ bookData, onClose }: ExportModalProps) {
       await new Promise((resolve) => setTimeout(resolve, 400))
     }
 
-    // Generate actual EPUB
-    const epubGenerator = new EPUBGenerator(bookData)
+    // Lazy-load only when needed
+    const { EPUBGenerator } = await import("@/lib/epub-generator")
+    const epubGenerator = new EPUBGenerator({ ...bookData, coverImage: bookData.coverImage ?? undefined })
     const epubBlob = await epubGenerator.generateEPUB()
 
     // Download EPUB
@@ -249,7 +249,7 @@ export default function ExportModal({ bookData, onClose }: ExportModalProps) {
                               <strong>Compatibilidad:</strong> {format.compatibility}
                             </p>
                             <p>
-                              <strong>Librería:</strong> {format.technical.library}
+                              <strong>Tecnología:</strong> {format.technical.library}
                             </p>
                           </div>
                         </div>
@@ -259,157 +259,62 @@ export default function ExportModal({ bookData, onClose }: ExportModalProps) {
                 })}
               </div>
 
-              {/* Selected Format Details */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h4 className="font-medium text-gray-900 mb-4">Detalles de exportación - {selectedFormatData.name}</h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Export Button */}
+              <button
+                onClick={handleExport}
+                className="btn btn-primary w-full"
+                disabled={isExporting}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar ahora
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Progress */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  {exportError ? (
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  ) : exportSuccess ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  )}
                   <div>
-                    <h5 className="font-medium text-gray-700 mb-2">Características técnicas:</h5>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      {selectedFormatData.technical.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h5 className="font-medium text-gray-700 mb-2">Plantilla aplicada:</h5>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <p>
-                        <strong>Diseño:</strong>{" "}
-                        {bookData.template.charAt(0).toUpperCase() + bookData.template.slice(1)}
-                      </p>
-                      <p>
-                        <strong>Color primario:</strong> {bookData.coverColor}
-                      </p>
-                      <p>
-                        <strong>Portada:</strong> {bookData.coverImage ? "Con imagen personalizada" : "Color sólido"}
-                      </p>
-                      <p>
-                        <strong>Capítulos:</strong> {bookData.content.split("# ").length - 1 || 1}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Book Summary */}
-              <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Resumen del libro</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Título:</span>
-                    <p className="font-medium text-gray-900 truncate">{bookData.title}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Autor:</span>
-                    <p className="font-medium text-gray-900 truncate">{bookData.author}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Palabras:</span>
                     <p className="font-medium text-gray-900">
-                      {bookData.content
-                        .split(" ")
-                        .filter((word) => word.length > 0)
-                        .length.toLocaleString()}
+                      {exportError
+                        ? "Error durante la exportación"
+                        : exportSuccess
+                        ? "Exportación completada"
+                        : exportProgress.message || "Preparando exportación..."}
                     </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Páginas estimadas:</span>
-                    <p className="font-medium text-gray-900">
-                      {Math.ceil(bookData.content.split(" ").filter((word) => word.length > 0).length / 250)}
-                    </p>
+                    {!exportSuccess && !exportError && (
+                      <p className="text-sm text-gray-600">Etapa: {exportProgress.stage}</p>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Error Display */}
-              {exportError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-red-800">Error de exportación</h4>
-                      <p className="text-sm text-red-700 mt-1">{exportError}</p>
-                    </div>
+                {!exportSuccess && !exportError && (
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-primary h-2 rounded-full transition-all"
+                      style={{ width: `${exportProgress.progress}%` }}
+                    />
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Actions */}
-              <div className="flex justify-end space-x-3">
-                <button onClick={onClose} className="btn btn-secondary">
-                  Cancelar
-                </button>
-                <button onClick={handleExport} className="btn btn-primary">
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar {selectedFormat.toUpperCase()}
-                </button>
+                {exportError && (
+                  <div className="text-sm text-red-600">
+                    {exportError}
+                  </div>
+                )}
+
+                {exportSuccess && (
+                  <div className="text-sm text-green-600">Tu archivo está listo para descargar.</div>
+                )}
               </div>
             </>
-          ) : isExporting ? (
-            /* Export Progress */
-            <div className="text-center py-12">
-              <div className="mb-6">
-                <Loader2 className="h-16 w-16 text-primary mx-auto animate-spin" />
-              </div>
-
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Generando {selectedFormat.toUpperCase()} con librerías profesionales
-              </h3>
-              <p className="text-gray-600 mb-8">{exportProgress.message}</p>
-
-              {/* Progress Bar */}
-              <div className="max-w-md mx-auto mb-6">
-                <div className="bg-gray-200 rounded-full h-3 mb-2">
-                  <div
-                    className="bg-primary h-3 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${exportProgress.progress}%` }}
-                  />
-                </div>
-                <p className="text-sm text-gray-600">{exportProgress.progress}% completado</p>
-              </div>
-
-              {/* Technical Details */}
-              <div className="bg-gray-50 rounded-lg p-4 max-w-md mx-auto">
-                <h4 className="font-medium text-gray-900 mb-2">Proceso técnico:</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>• Librería: {selectedFormatData.technical.library}</p>
-                  <p>• Plantilla: {bookData.template}</p>
-                  <p>• Etapa actual: {exportProgress.stage}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Success State */
-            <div className="text-center py-12">
-              <div className="mb-6">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-              </div>
-
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                ¡{selectedFormat.toUpperCase()} generado exitosamente!
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Tu libro ha sido exportado con todas las plantillas aplicadas. La descarga comenzó automáticamente.
-              </p>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
-                <h4 className="font-medium text-green-800 mb-2">Archivo generado:</h4>
-                <div className="text-sm text-green-700 space-y-1">
-                  <p>• Formato: {selectedFormat.toUpperCase()}</p>
-                  <p>• Plantilla: {bookData.template}</p>
-                  <p>• Tamaño estimado: {selectedFormatData.size}</p>
-                  <p>
-                    • Nombre: {bookData.title || "mi-libro"}.{selectedFormat}
-                  </p>
-                </div>
-              </div>
-            </div>
           )}
         </div>
       </div>

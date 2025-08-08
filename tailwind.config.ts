@@ -1,21 +1,14 @@
 import type { Config } from "tailwindcss"
-import defaultConfig from "shadcn/ui/tailwind.config"
 
 const config: Config = {
-  ...defaultConfig,
   content: [
-    ...defaultConfig.content,
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    ...defaultConfig.theme,
     extend: {
-      ...defaultConfig.theme.extend,
       colors: {
-        ...defaultConfig.theme.extend.colors,
         primary: {
           50: "#eff6ff",
           100: "#dbeafe",
@@ -23,8 +16,8 @@ const config: Config = {
           300: "#93c5fd",
           400: "#60a5fa",
           500: "#3b82f6",
-          600: "#006EE6", // Main Anclora blue
-          700: "#0050A7", // Dark variant
+          600: "#006EE6",
+          700: "#0050A7",
           800: "#1e40af",
           900: "#1e3a8a",
           DEFAULT: "#006EE6",
@@ -36,8 +29,8 @@ const config: Config = {
           200: "#a5f3fc",
           300: "#67e8f9",
           400: "#22d3ee",
-          500: "#00B8D9", // Main Anclora cyan
-          600: "#00829B", // Dark variant
+          500: "#00B8D9",
+          600: "#00829B",
           700: "#15803d",
           800: "#155e75",
           900: "#14532d",
@@ -140,7 +133,6 @@ const config: Config = {
         "8": "64px",
       },
       borderRadius: {
-        ...defaultConfig.theme.extend.borderRadius,
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -154,7 +146,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [...defaultConfig.plugins, require("tailwindcss-animate")],
+  plugins: [],
 }
 
 export default config

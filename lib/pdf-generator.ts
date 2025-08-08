@@ -193,7 +193,7 @@ export class PDFGenerator {
     const pageHeight = this.doc.internal.pageSize.getHeight()
 
     // Set background color
-    this.doc.setFillColor(this.hexToRgb(this.bookData.coverColor))
+    this.setFillColorHex(this.bookData.coverColor)
     this.doc.rect(0, 0, pageWidth, pageHeight, "F")
 
     // Add cover image if exists
@@ -219,7 +219,7 @@ export class PDFGenerator {
         this.doc.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST")
 
         // Add overlay for text readability
-        this.doc.setFillColor(0, 0, 0, 0.3)
+        this.doc.setFillColor(0, 0, 0, 0.3 as any)
         this.doc.rect(0, 0, pageWidth, pageHeight, "F")
       } catch (error) {
         console.warn("Failed to add cover image:", error)
@@ -238,267 +238,198 @@ export class PDFGenerator {
     titleLines.forEach((line: string, index: number) => {
       const textWidth = this.doc.getTextWidth(line)
       const x = (pageWidth - textWidth) / 2
-      this.doc.text(line, x, titleY + index * 10)
+      this.doc.text(line, x, titleY + index * 10, { baseline: "middle" as any })
     })
 
-    // Add subtitle
+    // Add subtitle if present
     if (this.bookData.subtitle) {
-      this.doc.setFontSize(16)
       this.doc.setFont("helvetica", "normal")
-
-      const subtitleLines = this.doc.splitTextToSize(this.bookData.subtitle, pageWidth - 40)
-      const subtitleY = titleY + titleHeight + 15
-
+      this.doc.setFontSize(16)
+      const subtitleLines = this.doc.splitTextToSize(this.bookData.subtitle, pageWidth - 60)
       subtitleLines.forEach((line: string, index: number) => {
         const textWidth = this.doc.getTextWidth(line)
         const x = (pageWidth - textWidth) / 2
-        this.doc.text(line, x, subtitleY + index * 6)
+        this.doc.text(line, x, titleY + titleHeight + 10 + index * 8)
       })
     }
 
-    // Add author
+    // Add author name
+    this.doc.setFont("helvetica", "normal")
     this.doc.setFontSize(14)
-    this.doc.setFont("helvetica", "normal")
-    const authorY = pageHeight * 0.85
-    const authorWidth = this.doc.getTextWidth(this.bookData.author)
-    const authorX = (pageWidth - authorWidth) / 2
-    this.doc.text(this.bookData.author, authorX, authorY)
-
-    // Add publisher
-    this.doc.setFontSize(10)
-    const publisherY = pageHeight - 20
-    const publisherText = "ANCLORA PRESS"
-    const publisherWidth = this.doc.getTextWidth(publisherText)
-    const publisherX = (pageWidth - publisherWidth) / 2
-    this.doc.text(publisherText, publisherX, publisherY)
-  }
-
-  private generateTableOfContents(): void {
-    const chapters = this.extractChapters()
-
-    if (chapters.length === 0) return
-
-    this.doc.setTextColor(this.hexToRgb(this.template.colors.text))
-    this.doc.setFont("helvetica", "bold")
-    this.doc.setFontSize(20)
-
-    this.doc.text("Índice", this.template.layout.margins.left, this.currentY)
-    this.currentY += 15
-
-    this.doc.setFont("helvetica", "normal")
-    this.doc.setFontSize(12)
-
-    chapters.forEach((chapter, index) => {
-      const pageNum = index + 3 // Approximate page numbers
-      const dots = ".".repeat(50)
-      const line = `${chapter.title} ${dots} ${pageNum}`
-
-      this.doc.text(chapter.title, this.template.layout.margins.left, this.currentY)
-
-      // Add page number aligned to right
-      const pageNumWidth = this.doc.getTextWidth(pageNum.toString())
-      const pageWidth = this.doc.internal.pageSize.getWidth()
-      this.doc.text(pageNum.toString(), pageWidth - this.template.layout.margins.right - pageNumWidth, this.currentY)
-
-      this.currentY += 8
-
-      if (this.currentY > this.doc.internal.pageSize.getHeight() - this.template.layout.margins.bottom) {
-        this.addNewPage()
-      }
-    })
-  }
-
-  private async generateContentPages(): Promise<void> {
-    const content = this.parseMarkdownContent(this.bookData.content)
-
-    for (const element of content) {
-      await this.renderContentElement(element)
-
-      // Check if we need a new page
-      if (this.currentY > this.doc.internal.pageSize.getHeight() - this.template.layout.margins.bottom - 20) {
-        this.addNewPage()
-      }
-    }
-  }
-
-  private parseMarkdownContent(content: string): Array<{
-    type: "h1" | "h2" | "h3" | "p" | "quote" | "divider"
-    content: string
-    level?: number
-  }> {
-    const lines = content.split("\n")
-    const elements: Array<any> = []
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim()
-
-      if (line.startsWith("# ")) {
-        elements.push({ type: "h1", content: line.substring(2), level: 1 })
-      } else if (line.startsWith("## ")) {
-        elements.push({ type: "h2", content: line.substring(3), level: 2 })
-      } else if (line.startsWith("### ")) {
-        elements.push({ type: "h3", content: line.substring(4), level: 3 })
-      } else if (line === "---") {
-        elements.push({ type: "divider", content: "" })
-      } else if (line.startsWith("*") && line.endsWith("*") && line.length > 2) {
-        elements.push({ type: "quote", content: line.slice(1, -1) })
-      } else if (line.length > 0) {
-        elements.push({ type: "p", content: line })
-      }
-    }
-
-    return elements
-  }
-
-  private async renderContentElement(element: any): Promise<void> {
-    const pageWidth = this.doc.internal.pageSize.getWidth()
-    const textWidth = pageWidth - this.template.layout.margins.left - this.template.layout.margins.right
-
-    switch (element.type) {
-      case "h1":
-        this.currentY += this.template.layout.spacing.chapter
-        this.doc.setFont("helvetica", this.template.fonts.chapter.weight as any)
-        this.doc.setFontSize(this.template.fonts.chapter.size)
-        this.doc.setTextColor(this.hexToRgb(this.template.colors.primary))
-
-        const h1Lines = this.doc.splitTextToSize(element.content, textWidth)
-        h1Lines.forEach((line: string, index: number) => {
-          this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 8)
-        })
-        this.currentY += h1Lines.length * 8 + this.template.layout.spacing.section
-        break
-
-      case "h2":
-        this.currentY += this.template.layout.spacing.section
-        this.doc.setFont("helvetica", "bold")
-        this.doc.setFontSize(16)
-        this.doc.setTextColor(this.hexToRgb(this.template.colors.text))
-
-        const h2Lines = this.doc.splitTextToSize(element.content, textWidth)
-        h2Lines.forEach((line: string, index: number) => {
-          this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 6)
-        })
-        this.currentY += h2Lines.length * 6 + 8
-        break
-
-      case "h3":
-        this.currentY += 8
-        this.doc.setFont("helvetica", "bold")
-        this.doc.setFontSize(14)
-        this.doc.setTextColor(this.hexToRgb(this.template.colors.text))
-
-        const h3Lines = this.doc.splitTextToSize(element.content, textWidth)
-        h3Lines.forEach((line: string, index: number) => {
-          this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 5)
-        })
-        this.currentY += h3Lines.length * 5 + 6
-        break
-
-      case "p":
-        this.doc.setFont("helvetica", "normal")
-        this.doc.setFontSize(this.template.fonts.body.size)
-        this.doc.setTextColor(this.hexToRgb(this.template.colors.text))
-
-        const pLines = this.doc.splitTextToSize(element.content, textWidth)
-
-        // Drop cap for first paragraph of chapter (classic template)
-        if (this.template.styles.dropCap && element.content.length > 0) {
-          const firstChar = element.content.charAt(0)
-          const restOfFirstLine = pLines[0].substring(1)
-
-          // Draw drop cap
-          this.doc.setFont("helvetica", "bold")
-          this.doc.setFontSize(36)
-          this.doc.text(firstChar, this.template.layout.margins.left, this.currentY + 12)
-
-          // Draw rest of text
-          this.doc.setFont("helvetica", "normal")
-          this.doc.setFontSize(this.template.fonts.body.size)
-          this.doc.text(restOfFirstLine, this.template.layout.margins.left + 12, this.currentY)
-
-          // Draw remaining lines
-          for (let i = 1; i < pLines.length; i++) {
-            this.doc.text(pLines[i], this.template.layout.margins.left, this.currentY + i * 5)
-          }
-        } else {
-          pLines.forEach((line: string, index: number) => {
-            this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 5)
-          })
-        }
-
-        this.currentY += pLines.length * 5 + this.template.layout.spacing.paragraph
-        break
-
-      case "quote":
-        this.currentY += 5
-        this.doc.setFont("helvetica", "italic")
-        this.doc.setFontSize(this.template.fonts.body.size - 1)
-        this.doc.setTextColor(this.hexToRgb(this.template.colors.secondary))
-
-        // Draw quote border
-        this.doc.setDrawColor(this.hexToRgb(this.template.colors.primary))
-        this.doc.setLineWidth(0.5)
-        this.doc.line(
-          this.template.layout.margins.left,
-          this.currentY - 3,
-          this.template.layout.margins.left,
-          this.currentY + 10,
-        )
-
-        const quoteLines = this.doc.splitTextToSize(element.content, textWidth - 10)
-        quoteLines.forEach((line: string, index: number) => {
-          this.doc.text(line, this.template.layout.margins.left + 5, this.currentY + index * 5)
-        })
-        this.currentY += quoteLines.length * 5 + 8
-        break
-
-      case "divider":
-        this.currentY += 10
-        this.doc.setDrawColor(this.hexToRgb(this.template.colors.secondary))
-        this.doc.setLineWidth(0.3)
-        this.doc.line(
-          this.template.layout.margins.left + textWidth * 0.3,
-          this.currentY,
-          this.template.layout.margins.left + textWidth * 0.7,
-          this.currentY,
-        )
-        this.currentY += 10
-        break
-    }
+    const authorText = `por ${this.bookData.author}`
+    const authorWidth = this.doc.getTextWidth(authorText)
+    this.doc.text(authorText, (pageWidth - authorWidth) / 2, pageHeight - 30)
   }
 
   private addNewPage(): void {
     this.doc.addPage()
-    this.pageNumber++
     this.currentY = this.template.layout.margins.top
+  }
 
-    // Add header
-    if (this.template.styles.headers && this.pageNumber > 1) {
-      this.doc.setFont("helvetica", "normal")
-      this.doc.setFontSize(9)
-      this.doc.setTextColor(150, 150, 150)
-      this.doc.text(this.bookData.title, this.template.layout.margins.left, 15)
-    }
+  private generateTableOfContents(): void {
+    const pageWidth = this.doc.internal.pageSize.getWidth()
 
-    // Add page number
-    if (this.template.styles.pageNumbers && this.pageNumber > 1) {
-      const pageWidth = this.doc.internal.pageSize.getWidth()
-      const pageHeight = this.doc.internal.pageSize.getHeight()
-      const pageNumText = this.pageNumber.toString()
-      const pageNumWidth = this.doc.getTextWidth(pageNumText)
+    this.doc.setFont("helvetica", "bold")
+    this.doc.setFontSize(18)
+    const tocTitle = "Tabla de Contenidos"
+    const tocWidth = this.doc.getTextWidth(tocTitle)
+    this.doc.text(tocTitle, (pageWidth - tocWidth) / 2, this.currentY)
+    this.currentY += 10
 
-      this.doc.setFont("helvetica", "normal")
-      this.doc.setFontSize(10)
-      this.doc.setTextColor(100, 100, 100)
+    const chapters = this.extractChapters()
 
-      if (this.template.styles.footers) {
-        // Center page number in footer
-        this.doc.text(pageNumText, (pageWidth - pageNumWidth) / 2, pageHeight - 15)
-      } else {
-        // Right-align page number in header
-        this.doc.text(pageNumText, pageWidth - this.template.layout.margins.right - pageNumWidth, 15)
+    if (chapters.length === 0) return
+
+    this.setTextColorHex(this.template.colors.text)
+    this.doc.setFont("helvetica", "bold")
+    this.doc.setFontSize(20)
+
+    chapters.forEach((chapter: { title: string; page: number }, index: number) => {
+      const chapterTitle = `${index + 1}. ${chapter.title}`
+      this.doc.text(chapterTitle, this.template.layout.margins.left, this.currentY)
+
+      const dotsWidth = this.doc.getTextWidth(".") * 50
+      const pageNumberX = this.doc.internal.pageSize.getWidth() - this.template.layout.margins.right
+      this.doc.text(".".repeat(50), pageNumberX - dotsWidth, this.currentY)
+      this.doc.text(chapter.page.toString(), pageNumberX, this.currentY)
+
+      this.currentY += 8
+    })
+
+    this.currentY += 10
+  }
+
+  private async generateContentPages(): Promise<void> {
+    const content = this.bookData.content
+    const pageWidth = this.doc.internal.pageSize.getWidth()
+    const textWidth = pageWidth - this.template.layout.margins.left - this.template.layout.margins.right
+
+    const elements = this.parseContentToElements(content)
+
+    elements.forEach((element) => {
+      if (this.currentY > this.doc.internal.pageSize.getHeight() - this.template.layout.margins.bottom) {
+        this.addNewPage()
       }
-    }
+
+      switch (element.type) {
+        case "h1":
+          this.currentY += this.template.layout.spacing.chapter
+          this.doc.setFont("helvetica", this.template.fonts.chapter.weight as any)
+          this.doc.setFontSize(this.template.fonts.chapter.size)
+          this.setTextColorHex(this.template.colors.primary)
+
+          const h1Lines = this.doc.splitTextToSize(element.content, textWidth)
+          h1Lines.forEach((line: string, index: number) => {
+            this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 10)
+          })
+
+          this.currentY += h1Lines.length * 10 + 4
+          break
+
+        case "h2":
+          this.currentY += this.template.layout.spacing.section
+          this.doc.setFont("helvetica", "bold")
+          this.doc.setFontSize(16)
+          this.setTextColorHex(this.template.colors.text)
+
+          const h2Lines = this.doc.splitTextToSize(element.content, textWidth)
+          h2Lines.forEach((line: string, index: number) => {
+            this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 8)
+          })
+
+          this.currentY += h2Lines.length * 8 + 4
+          break
+
+        case "h3":
+          this.currentY += 8
+          this.doc.setFont("helvetica", "bold")
+          this.doc.setFontSize(14)
+          this.setTextColorHex(this.template.colors.text)
+
+          const h3Lines = this.doc.splitTextToSize(element.content, textWidth)
+          h3Lines.forEach((line: string, index: number) => {
+            this.doc.text(line, this.template.layout.margins.left, this.currentY + index * 7)
+          })
+
+          this.currentY += h3Lines.length * 7 + 3
+          break
+
+        case "p":
+          this.doc.setFont("helvetica", "normal")
+          this.doc.setFontSize(this.template.fonts.body.size)
+          this.setTextColorHex(this.template.colors.text)
+
+          const pLines = this.doc.splitTextToSize(element.content, textWidth)
+
+          pLines.forEach((line: string) => {
+            if (this.currentY > this.doc.internal.pageSize.getHeight() - this.template.layout.margins.bottom) {
+              this.addNewPage()
+            }
+            this.doc.text(line, this.template.layout.margins.left, this.currentY)
+            this.currentY += this.template.fonts.body.lineHeight * 4
+          })
+          break
+
+        case "blockquote":
+          this.currentY += 5
+          this.doc.setFont("helvetica", "italic")
+          this.doc.setFontSize(this.template.fonts.body.size - 1)
+          this.setTextColorHex(this.template.colors.secondary)
+
+          // Draw quote border
+          this.setDrawColorHex(this.template.colors.primary)
+          this.doc.setLineWidth(0.5)
+          this.doc.line(
+            this.template.layout.margins.left,
+            this.currentY - 4,
+            pageWidth - this.template.layout.margins.right,
+            this.currentY - 4
+          )
+
+          const quoteLines = this.doc.splitTextToSize(`“${element.content}”`, textWidth * 0.95)
+          quoteLines.forEach((line: string) => {
+            this.doc.text(line, this.template.layout.margins.left + textWidth * 0.05, this.currentY)
+            this.currentY += this.template.fonts.body.lineHeight * 4
+          })
+          break
+
+        case "divider":
+          this.currentY += 10
+          this.setDrawColorHex(this.template.colors.secondary)
+          this.doc.setLineWidth(0.3)
+          this.doc.line(
+            this.template.layout.margins.left + textWidth * 0.3,
+            this.currentY,
+            this.template.layout.margins.left + textWidth * 0.7,
+            this.currentY
+          )
+          this.currentY += 10
+          break
+      }
+    })
+  }
+
+  private parseContentToElements(content: string): Array<{ type: string; content: string }> {
+    const lines = content.split("\n")
+    const elements: Array<{ type: string; content: string }> = []
+
+    lines.forEach((line) => {
+      if (line.startsWith("# ")) {
+        elements.push({ type: "h1", content: line.substring(2).trim() })
+      } else if (line.startsWith("## ")) {
+        elements.push({ type: "h2", content: line.substring(3).trim() })
+      } else if (line.startsWith("### ")) {
+        elements.push({ type: "h3", content: line.substring(4).trim() })
+      } else if (line.startsWith("> ")) {
+        elements.push({ type: "blockquote", content: line.substring(2).trim() })
+      } else if (line.trim() === "---") {
+        elements.push({ type: "divider", content: "" })
+      } else if (line.trim() !== "") {
+        elements.push({ type: "p", content: line.trim() })
+      }
+    })
+
+    return elements
   }
 
   private extractChapters(): Array<{ title: string; page: number }> {
@@ -522,5 +453,20 @@ export class PDFGenerator {
     return result
       ? [Number.parseInt(result[1], 16), Number.parseInt(result[2], 16), Number.parseInt(result[3], 16)]
       : [0, 0, 0]
+  }
+
+  private setTextColorHex(hex: string): void {
+    const [r, g, b] = this.hexToRgb(hex)
+    this.doc.setTextColor(r, g, b)
+  }
+
+  private setFillColorHex(hex: string): void {
+    const [r, g, b] = this.hexToRgb(hex)
+    this.doc.setFillColor(r, g, b)
+  }
+
+  private setDrawColorHex(hex: string): void {
+    const [r, g, b] = this.hexToRgb(hex)
+    this.doc.setDrawColor(r, g, b)
   }
 }
